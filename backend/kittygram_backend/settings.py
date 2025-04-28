@@ -1,9 +1,7 @@
 # flake8: noqa
 import os
 from pathlib import Path
-from dotenv import load_dotenv  # Добавляем!
 
-load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -101,7 +99,7 @@ STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'collected_static'
 
 MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
