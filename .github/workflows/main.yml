@@ -20,18 +20,31 @@ jobs:
         options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
     steps:
       - uses: actions/checkout@v3
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            python3-dev \
+            libjpeg-dev \
+            zlib1g-dev \
+            libpng-dev \
+            libwebp-dev \
+            libtiff-dev \
+            libopenjp2-7-dev
+          
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: 3.11
-
-      - name: Install dependencies
+          
+      - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install flake8==6.0.0 flake8-isort==6.0.0
+          pip install wheel
           pip install -r ./backend/requirements.txt
-
-      - name: Test with flake8 and django tests
+          
+      - name: Run flake8 and tests
         env:
           POSTGRES_USER: django_user
           POSTGRES_PASSWORD: django_password
