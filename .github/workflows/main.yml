@@ -128,23 +128,20 @@ jobs:
 
   deploy:
     runs-on: ubuntu-latest
-    needs:
-      - build_and_push_backend
-      - build_and_push_frontend
-      - build_and_push_gateway
+    needs: [build_and_push_backend, build_and_push_frontend, build_and_push_gateway]
     steps:
       - uses: actions/checkout@v3
-      
+        
       # Шаг 1: Проверка существования файлов
-      - name: Verify files exist
+      - name: Verify source files
         run: |
-          ls -la
-          ls -la backend/
-          [ -f docker-compose.yml ] || exit 1
-          [ -f .env.example ] || exit 1
-      
-      # Шаг 2: Копирование файлов по отдельности
-      - name: Copy docker-compose.yml
+          echo "Current directory structure:"
+          ls -R
+          [ -f docker-compose.yml ] || { echo "docker-compose.yml not found!"; exit 1; }
+          [ -f backend/.env.example ] || { echo "backend/.env.example not found!"; exit 1; }
+
+      # Шаг 2: Копирование docker-compose.yml
+      - name: Copy docker-compose
         uses: appleboy/scp-action@master
         with:
           host: ${{ secrets.HOST }}
@@ -153,9 +150,10 @@ jobs:
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
           source: "docker-compose.yml"
           target: "kittygram/"
-          rm: true
-      
-      - name: Copy .env example
+          overwrite: true
+
+      # Шаг 3: Копирование .env.example
+      - name: Copy env example
         uses: appleboy/scp-action@master
         with:
           host: ${{ secrets.HOST }}
@@ -163,10 +161,11 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
           source: "backend/.env.example"
-          target: "kittygram/"
-      
-      # Остальные шаги остаются без изменений
-      - name: Prepare environment
+          target: "kittygram/.env"  # Копируем сразу как .env
+          overwrite: true
+
+      # Шаг 4: Настройка сервера
+      - name: Setup server
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.HOST }}
@@ -175,11 +174,18 @@ jobs:
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
           script: |
             cd kittygram
-            [ ! -f .env ] && cp .env.example .env
             sudo apt-get update
-            sudo apt-get install -y python3-dev libjpeg-dev zlib1g-dev
-      
-      - name: Deploy containers
+            sudo apt-get install -y \
+              python3-dev \
+              libjpeg-dev \
+              zlib1g-dev \
+              libpng-dev \
+              libwebp-dev \
+              libtiff-dev \
+              libopenjp2-7-dev
+
+      # Шаг 5: Деплой приложения
+      - name: Run deployment
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.HOST }}
@@ -188,9 +194,18 @@ jobs:
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
           script: |
             cd kittygram
+            docker compose pull
             docker compose down
             docker compose up -d db
-            sleep 15
+            
+            # Ждем готовности БД
+            for i in {1..10}; do
+              if docker compose exec db pg_isready -U your_db_user; then
+                break
+              fi
+              sleep 5
+            done
+            
             docker compose up -d
             docker compose exec backend python manage.py migrate
             docker compose exec backend python manage.py collectstatic --noinput
