@@ -20,7 +20,6 @@ jobs:
         options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
     steps:
       - uses: actions/checkout@v3
-
       - name: Install system dependencies
         run: |
           sudo apt-get update
@@ -32,19 +31,16 @@ jobs:
             libwebp-dev \
             libtiff-dev \
             libopenjp2-7-dev
-          
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: 3.11
-          
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
           pip install wheel
           pip install flake8==6.0.0
           pip install -r ./backend/requirements.txt
-          
       - name: Run flake8 and tests
         env:
           POSTGRES_USER: django_user
@@ -131,16 +127,9 @@ jobs:
     needs: [build_and_push_backend, build_and_push_frontend, build_and_push_gateway]
     steps:
       - uses: actions/checkout@v3
-        
-      # Шаг 1: Проверка существования файлов
-      - name: Verify source files
+      - name: Verify docker-compose exists
         run: |
-          echo "Current directory structure:"
-          ls -R
           [ -f docker-compose.yml ] || { echo "docker-compose.yml not found!"; exit 1; }
-          [ -f backend/.env.example ] || { echo "backend/.env.example not found!"; exit 1; }
-
-      # Шаг 2: Копирование docker-compose.yml
       - name: Copy docker-compose
         uses: appleboy/scp-action@master
         with:
@@ -151,33 +140,7 @@ jobs:
           source: "docker-compose.yml"
           target: "kittygram/"
           overwrite: true
-      - name: Prepare .env directory
-        uses: appleboy/ssh-action@master
-        with:
-            host: ${{ secrets.HOST }}
-            username: ${{ secrets.USER }}
-            key: ${{ secrets.SSH_KEY }}
-            passphrase: ${{ secrets.SSH_PASSPHRASE }}
-            script: |
-              mkdir -p ~/kittygram
-              cd ~/kittygram
-              rm -rf .env  # Удаляем и файл и папку если есть
-              touch .env   # Создаем пустой файл
-              chmod 600 .env
-      # Шаг 3: Копирование .env.example
-      - name: Copy env example
-        uses: appleboy/scp-action@master
-        with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USER }}
-          key: ${{ secrets.SSH_KEY }}
-          passphrase: ${{ secrets.SSH_PASSPHRASE }}
-          source: "backend/.env.example"
-          target: "kittygram/.env"  # Копируем сразу как .env
-          overwrite: true
-
-      # Шаг 4: Настройка сервера
-      - name: Setup server
+      - name: Install dependencies
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.HOST }}
@@ -185,7 +148,6 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
           script: |
-            cd kittygram
             sudo apt-get update
             sudo apt-get install -y \
               python3-dev \
@@ -195,8 +157,6 @@ jobs:
               libwebp-dev \
               libtiff-dev \
               libopenjp2-7-dev
-
-      # Шаг 5: Деплой приложения
       - name: Run deployment
         uses: appleboy/ssh-action@master
         with:
@@ -209,15 +169,7 @@ jobs:
             docker compose pull
             docker compose down
             docker compose up -d db
-            
-            # Ждем готовности БД
-            for i in {1..10}; do
-              if docker compose exec db pg_isready -U your_db_user; then
-                break
-              fi
-              sleep 5
-            done
-            
+            sleep 15
             docker compose up -d
             docker compose exec backend python manage.py migrate
             docker compose exec backend python manage.py collectstatic --noinput
