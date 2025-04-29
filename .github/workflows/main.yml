@@ -134,6 +134,7 @@ jobs:
       - build_and_push_gateway
     steps:
       - uses: actions/checkout@v3
+      
       - name: Copy compose file
         uses: appleboy/scp-action@master
         with:
@@ -142,8 +143,28 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
           source: "docker-compose.yml"
-          target: "kittygram"
-      - name: Deploy
+          target: "kittygram/"
+          rm: true
+      
+      - name: Install system dependencies
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USER }}
+          key: ${{ secrets.SSH_KEY }}
+          passphrase: ${{ secrets.SSH_PASSPHRASE }}
+          script: |
+            sudo apt-get update
+            sudo apt-get install -y \
+              python3-dev \
+              libjpeg-dev \
+              zlib1g-dev \
+              libpng-dev \
+              libwebp-dev \
+              libtiff-dev \
+              libopenjp2-7-dev
+      
+      - name: Deploy application
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.HOST }}
@@ -152,27 +173,18 @@ jobs:
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
           script: |
             cd kittygram
-            sudo apt-get update
-            sudo apt-get install -y python3-dev libjpeg-dev zlib1g-dev libpng-dev libwebp-dev libtiff-dev libopenjp2-7-dev
-            sudo docker compose pull
-            sudo docker compose down
-            sudo docker compose up -d
-            sudo docker compose exec backend python manage.py migrate
-            sudo docker compose exec backend python manage.py collectstatic --noinput
-            sudo docker compose exec backend cp -r /app/staticfiles/. /app/static/
-      - name: Install Pillow dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            python3-dev \
-            libjpeg-dev \
-            zlib1g-dev \
-            libpng-dev \
-            libwebp-dev \
-            libtiff-dev \
-            libopenjp2-7-dev
-          pip install --upgrade pip
-          pip install --no-cache-dir wheel
+            sudo docker compose down          
+            sudo docker compose up -d db
+            echo "Waiting for PostgreSQL to start..."
+            sleep 15         
+            sudo docker compose up -d            
+            sudo docker compose exec backend bash -c "
+              python manage.py migrate &&
+              python manage.py collectstatic --noinput &&
+              mkdir -p /app/static &&
+              cp -r /app/collected_static/. /app/static/
+            "
+            sudo docker compose ps
 
   send_message:
     runs-on: ubuntu-latest
