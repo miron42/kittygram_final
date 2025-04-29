@@ -135,18 +135,20 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       
-      - name: Copy compose file
+      - name: Copy necessary files
         uses: appleboy/scp-action@master
         with:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USER }}
           key: ${{ secrets.SSH_KEY }}
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
-          source: "docker-compose.yml"
+          source: |
+            docker-compose.yml
+            backend/.env.example
           target: "kittygram/"
-
+          rm: true
       
-      - name: Install system dependencies
+      - name: Prepare environment on server
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.HOST }}
@@ -154,6 +156,14 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
           script: |
+            cd kittygram
+            # Создаем .env файл если его нет
+            if [ ! -f .env ]; then
+              cp .env.example .env
+              echo "Created .env file from example"
+            fi
+            
+            # Устанавливаем системные зависимости
             sudo apt-get update
             sudo apt-get install -y \
               python3-dev \
@@ -173,18 +183,24 @@ jobs:
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
           script: |
             cd kittygram
-            sudo docker compose down          
+            # Останавливаем старые контейнеры
+            sudo docker compose down
+            
+            # Запускаем БД и ждем
             sudo docker compose up -d db
             echo "Waiting for PostgreSQL to start..."
-            sleep 15         
-            sudo docker compose up -d            
+            sleep 15
+            
+            # Запускаем остальные сервисы
+            sudo docker compose up -d
+            
+            # Выполняем миграции и сбор статики
             sudo docker compose exec backend bash -c "
               python manage.py migrate &&
               python manage.py collectstatic --noinput &&
               mkdir -p /app/static &&
-              cp -r /app/collected_static/. /app/static/
+              [ -d /app/collected_static ] && cp -r /app/collected_static/. /app/static/ || echo 'No static files to copy'
             "
-            sudo docker compose ps
 
   send_message:
     runs-on: ubuntu-latest
