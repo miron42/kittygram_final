@@ -1,7 +1,8 @@
-FROM python:3.11
 
-# Установка системных зависимостей для Pillow
+FROM python:3.11-slim-bookworm
+
 RUN apt-get update && apt-get install -y \
+    build-essential \
     python3-dev \
     libjpeg-dev \
     zlib1g-dev \
@@ -13,7 +14,10 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-COPY . .
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir wheel && \
+    pip install --no-cache-dir -r requirements.txt
 
-CMD ["gunicorn", "--bind", "0.0.0.0:9000", "kittygram_backend.wsgi"]
+
+COPY . .
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "kittygram_backend.wsgi"]

@@ -76,6 +76,8 @@ jobs:
           context: ./backend/
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/kittygram_backend:latest
+          build-args: |
+            ENVIRONMENT=production
 
   build_and_push_frontend:
     name: Push frontend Docker image
@@ -142,6 +144,19 @@ jobs:
             sudo docker compose exec backend python manage.py migrate
             sudo docker compose exec backend python manage.py collectstatic --noinput
             sudo docker compose exec backend cp -r /app/staticfiles/. /app/static/
+      - name: Install Pillow dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            python3-dev \
+            libjpeg-dev \
+            zlib1g-dev \
+            libpng-dev \
+            libwebp-dev \
+            libtiff-dev \
+            libopenjp2-7-dev
+          pip install --upgrade pip
+          pip install --no-cache-dir wheel
 
   send_message:
     runs-on: ubuntu-latest
