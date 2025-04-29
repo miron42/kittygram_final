@@ -151,7 +151,19 @@ jobs:
           source: "docker-compose.yml"
           target: "kittygram/"
           overwrite: true
-
+      - name: Prepare .env directory
+        uses: appleboy/ssh-action@master
+        with:
+            host: ${{ secrets.HOST }}
+            username: ${{ secrets.USER }}
+            key: ${{ secrets.SSH_KEY }}
+            passphrase: ${{ secrets.SSH_PASSPHRASE }}
+            script: |
+              mkdir -p ~/kittygram
+              cd ~/kittygram
+              rm -rf .env  # Удаляем и файл и папку если есть
+              touch .env   # Создаем пустой файл
+              chmod 600 .env
       # Шаг 3: Копирование .env.example
       - name: Copy env example
         uses: appleboy/scp-action@master
