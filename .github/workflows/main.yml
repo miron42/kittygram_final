@@ -147,7 +147,7 @@ jobs:
 
       # Основные операции на сервере
       - name: Prepare server environment
-        uses: fifsky/ssh-action@
+        uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.HOST }}
           user: ${{ secrets.USER }}
@@ -176,7 +176,7 @@ jobs:
 
       # Настройка Nginx
       - name: Configure Nginx
-        uses: fifsky/ssh-action@
+        uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.HOST }}
           user: ${{ secrets.USER }}
@@ -190,7 +190,7 @@ jobs:
 
       # Основной деплой
       - name: Run deployment
-        uses: fifsky/ssh-action@
+        uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.HOST }}
           user: ${{ secrets.USER }}
