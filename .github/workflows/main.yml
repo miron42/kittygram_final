@@ -171,6 +171,7 @@ jobs:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USER }}
           key: ${{ secrets.SSH_KEY }}
+          passphrase: ${{ secrets.SSH_PASSPHRASE }}
           source: "docker-compose.yml"
           target: "kittygram/"
 
@@ -181,6 +182,7 @@ jobs:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USER }}
           key: ${{ secrets.SSH_KEY }}
+          passphrase: ${{ secrets.SSH_PASSPHRASE }}
           script: |
             echo "### Nginx configuration started ###"
             sudo cp ~/kittygram/nginx/kittygram.conf /etc/nginx/sites-available/
@@ -195,6 +197,7 @@ jobs:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USER }}
           key: ${{ secrets.SSH_KEY }}
+          passphrase: ${{ secrets.SSH_PASSPHRASE }}
           script_timeout: 15m
           script: |
             echo "### Deployment started ###"
@@ -232,6 +235,7 @@ jobs:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USER }}
           key: ${{ secrets.SSH_KEY }}
+          passphrase: ${{ secrets.SSH_PASSPHRASE }}
           script: |
             echo "### Verification started ###"
             cd ~/kittygram
