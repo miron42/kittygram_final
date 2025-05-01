@@ -164,6 +164,10 @@ jobs:
       - name: Run deployment
         uses: appleboy/ssh-action@master
         with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USER }}
+          key: ${{ secrets.SSH_KEY }}
+          passphrase: ${{ secrets.SSH_PASSPHRASE }}
           script: |
             cd kittygram
             docker compose pull
