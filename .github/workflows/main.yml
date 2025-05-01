@@ -150,7 +150,7 @@ jobs:
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.HOST }}
-          user: ${{ secrets.USER }}
+          username: ${{ secrets.USER }}
           key: ${{ secrets.SSH_KEY }}
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
           script: |
@@ -169,7 +169,7 @@ jobs:
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.HOST }}
-          user: ${{ secrets.USER }}
+          username: ${{ secrets.USER }}
           key: ${{ secrets.SSH_KEY }}
           source: "docker-compose.yml"
           target: "kittygram/"
@@ -179,7 +179,7 @@ jobs:
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.HOST }}
-          user: ${{ secrets.USER }}
+          username: ${{ secrets.USER }}
           key: ${{ secrets.SSH_KEY }}
           script: |
             echo "### Nginx configuration started ###"
@@ -193,7 +193,7 @@ jobs:
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.HOST }}
-          user: ${{ secrets.USER }}
+          username: ${{ secrets.USER }}
           key: ${{ secrets.SSH_KEY }}
           script_timeout: 15m
           script: |
@@ -227,10 +227,10 @@ jobs:
 
       # Проверка деплоя
       - name: Verify deployment
-        uses: fifsky/ssh-action@
+        uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.HOST }}
-          user: ${{ secrets.USER }}
+          username: ${{ secrets.USER }}
           key: ${{ secrets.SSH_KEY }}
           script: |
             echo "### Verification started ###"
