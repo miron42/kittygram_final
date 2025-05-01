@@ -126,27 +126,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build_and_push_backend, build_and_push_frontend, build_and_push_gateway]
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      # Проверка секретов
-      - name: Verify secrets availability
-        run: |
-          echo "HOST: ${{ secrets.HOST != '' && 'SET' || 'MISSING' }}"
-          echo "USER: ${{ secrets.USER != '' && 'SET' || 'MISSING' }}"
-          echo "KEY: ${{ secrets.SSH_KEY != '' && 'SET' || 'MISSING' }}"
-          echo "PASSPHRASE: ${{ secrets.SSH_PASSPHRASE != '' && 'SET' || 'MISSING' }}"
-
-      # Подготовка SSH
-      - name: Setup SSH environment
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_KEY }}" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan ${{ secrets.HOST }} >> ~/.ssh/known_hosts
-
-      # Основные операции на сервере
-      - name: Prepare server environment
+      - name: Deploy
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.HOST }}
@@ -154,94 +134,15 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
           script: |
-            echo "### Server preparation started ###"
-            mkdir -p ~/kittygram
-            npm cache clean --force
-            sudo apt clean -y
-            sudo journalctl --vacuum-time=1d
-            sudo docker system prune -af
-            sudo systemctl stop kittygram_gunicorn || true
-            sudo systemctl disable kittygram_gunicorn || true
-            echo "### Server preparation complete ###"
-
-      # Копирование файлов
-      - name: Transfer configuration files
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USER }}
-          key: ${{ secrets.SSH_KEY }}
-          passphrase: ${{ secrets.SSH_PASSPHRASE }}
-          source: "docker-compose.yml"
-          target: "kittygram/"
-
-      # Настройка Nginx
-      - name: Configure Nginx
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USER }}
-          key: ${{ secrets.SSH_KEY }}
-          passphrase: ${{ secrets.SSH_PASSPHRASE }}
-          script: |
-            echo "### Nginx configuration started ###"
-            sudo cp ~/kittygram/nginx/kittygram.conf /etc/nginx/sites-available/
-            sudo ln -sf /etc/nginx/sites-available/kittygram.conf /etc/nginx/sites-enabled/
-            sudo nginx -t && sudo systemctl restart nginx
-            echo "### Nginx configuration complete ###"
-
-      # Основной деплой
-      - name: Run deployment
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USER }}
-          key: ${{ secrets.SSH_KEY }}
-          passphrase: ${{ secrets.SSH_PASSPHRASE }}
-          script_timeout: 15m
-          script: |
-            echo "### Deployment started ###"
             cd ~/kittygram
-            
-            echo "Pulling new images..."
             docker compose pull
-            
-            echo "Stopping existing containers..."
             docker compose down
-            
-            echo "Starting database..."
             docker compose up -d db
-            
-            echo "Waiting for database initialization..."
             sleep 10
-            
-            echo "Running migrations..."
-            docker compose run --rm backend python manage.py migrate
-            
-            echo "Collecting static files..."
-            docker compose run --rm backend python manage.py collectstatic --noinput
-            
-            echo "Starting all services..."
             docker compose up -d
-            
-            echo "### Deployment complete ###"
-            echo "Current containers status:"
-            docker compose ps
+            docker compose exec backend python manage.py migrate
+            docker compose exec backend python manage.py collectstatic --noinput
 
-      # Проверка деплоя
-      - name: Verify deployment
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USER }}
-          key: ${{ secrets.SSH_KEY }}
-          passphrase: ${{ secrets.SSH_PASSPHRASE }}
-          script: |
-            echo "### Verification started ###"
-            cd ~/kittygram
-            docker compose ps
-            curl -I http://localhost:9000 || true
-            echo "### Verification complete ###"
   send_message:
     runs-on: ubuntu-latest
     needs: deploy
