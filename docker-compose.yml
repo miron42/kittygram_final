@@ -13,27 +13,29 @@ services:
   backend:
     image: mironion/kittygram_backend
     env_file: .env
+    command: 
+      - sh -c "python manage.py migrate && gunicorn kittygram_backend.wsgi --bind 0.0.0.0:9000"
     volumes:
-      - static_volume:/app/static/
       - media_volume:/app/media/
+    expose:
+      - 9000
     depends_on:
       - db
 
   frontend:
     image: mironion/kittygram_frontend
     env_file: .env
-    command: cp -r /app/build/. /frontend_static/
+    command: cp -r /app/build/. /staticfiles/
     volumes:
-      - static_volume:/frontend_static/
+      - static_volume:/staticfiles/
 
   gateway:
     image: mironion/kittygram_gateway
-    env_file: .env
     volumes:
       - static_volume:/staticfiles/
       - media_volume:/mediafiles/
     ports:
-      - 9000:9000
+      - "9000:80"
     depends_on:
       - backend
       - frontend

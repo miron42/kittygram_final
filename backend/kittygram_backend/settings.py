@@ -9,7 +9,7 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-fallback-key')
 
 DEBUG = 'True'
 
-ALLOWED_HOSTS = ['localhost', '51.250.29.75', 'mrnproject.ddns.net']
+ALLOWED_HOSTS = ['backend', 'localhost', 'mrnproject.ddns.net', '51.250.29.75']
 
 INSTALLED_APPS = [
     'django.contrib.admin',
