@@ -160,6 +160,13 @@ jobs:
             sudo ln -sf /etc/nginx/sites-available/kittygram.conf /etc/nginx/sites-enabled/
             sudo nginx -t && sudo systemctl restart nginx
 
+      - name: Debug Secrets
+        run: |
+          echo "HOST: ${{ secrets.HOST != '' }}"
+          echo "USER: ${{ secrets.USER != '' }}"
+          echo "KEY: ${{ secrets.SSH_KEY != '' }}"
+          echo "PASSPHRASE: ${{ secrets.SSH_PASSPHRASE != '' }}"
+
       # Деплой
       - name: Deploy
         uses: appleboy/ssh-action@master
