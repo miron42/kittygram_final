@@ -151,4 +151,7 @@ jobs:
         with:
           to: ${{ secrets.TELEGRAM_TO }}
           token: ${{ secrets.TELEGRAM_TOKEN }}
-          message: "Kittygram успешно обновлён"
+          message: |
+           Разарботчик [${{ github.actor }}](https://github.com/${{ github.actor }}) обновил приложение Kittygram
+           с коммитом [${{ github.event.commits[0].message }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }}). 
+           Все заработало всего лишь с ${{ github.run_attempt }} раза)""
