@@ -28,6 +28,9 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    environment:
+      - DEBUG=${DEBUG:-False}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-backend,localhost}
 
   frontend:
     image: mironion/kittygram_frontend
